@@ -1,0 +1,247 @@
+---
+title: "Basic SIR Modeling"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+## Modelling an infected cohort
+Loading the packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(deSolve) 
+library(reshape2)
+library(ggplot2)  
+```
+
+Filling in the input and specifying timesteps:
+
+```{r}
+initial_number_infected <- 1000000  
+
+initial_number_recovered <- 0      
+recovery_rate <- 10^-1               
+follow_up_duration <- 4*7          
+
+initial_state_values <- c(I = initial_number_infected, 
+                          R = initial_number_recovered)  
+
+parameters <- c(gamma = recovery_rate)  
+
+times <- seq(from = 0, to = follow_up_duration, by = 1) 
+```
+
+The model function
+
+```{r}
+cohort_model <- function(time, state, parameters) {    
+    
+    with(as.list(c(state, parameters)), {  
+      dI <- -gamma * I
+      dR <- gamma * I
+        
+    return(list(c(dI, dR)))                             
+    })
+}
+```
+
+Solving the model equations using the ode() function in the deSolve package and saving them as a dataframe object:
+
+```{r}
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = cohort_model,
+                            parms = parameters))
+```
+
+Based on the output, how many people have recovered after 4 weeks
+```{r}
+output[output$time == 28, c("time","R")] 
+```
+
+Ploting the Output
+
+```{r}
+output_long <- melt(as.data.frame(output), id = "time")                  
+
+
+ggplot(data = output_long,         
+       aes(x = time, y = value, colour = variable, group = variable)) + 
+  geom_line() +                                                          
+  xlab("Time (days)")+                          
+  ylab("Number of people") +                  
+  labs(title = paste("Number infected and recovered over time when gamma =",
+               parameters["gamma"],"days^-1")) 
+```
+
+Based on the plot, at what timepoint were infected and recovered individuals equal in number
+```{r}
+output[output$time == 7,]
+```
+
+Varying  𝛾 
+Average duration of infection = 2 days so the recovery rate = 1/2 = 0.5 days −1
+```{r}
+parameters <- c(gamma = 0.5)
+
+# Solving the model
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = cohort_model,
+                            parms = parameters))
+
+# Plotting the output
+output_long <- melt(as.data.frame(output), id = "time")   
+# turn output dataset into long format
+
+ggplot(data = output_long,       
+       aes(x = time, 
+           y = value, 
+           colour = variable, 
+           group = variable)) +  
+  geom_line() +                                
+  xlab("Time (days)")+                          
+  ylab("Number of people") +                    
+  labs(title = paste("Number infected and recovered over time when gamma =",
+                      parameters["gamma"],"days^-1")) + # add title
+  scale_color_brewer(palette = "Set1")
+```
+
+Average duration of infection = 20 days so the recovery rate = 1/20 = 0.05 days −1
+```{r}
+parameters <- c(gamma = 0.05)
+
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = cohort_model,
+                            parms = parameters))
+
+output_long <- melt(as.data.frame(output), id = "time") 
+
+ggplot(data = output_long,                                 
+       aes(x = time, 
+           y = value, 
+           colour = variable, 
+           group = variable)) +  
+  geom_line() +                  
+  xlab("Time (days)")+          
+  ylab("Number of people") +   
+  labs(title = paste("Number infected and recovered over time when gamma =",
+                    parameters["gamma"],"days^-1"))
+```
+
+##Simulating competing hazards
+
+Question: what do  𝛾  (gamma) and  𝜇  (mu) represent? Draw the model diagram corresponding to these equations.
+Now, incorporate the new compartment and transition into your code. Since we already have a working scaffold for a model from the first coding etivity, it is good practice to copy and adapt it. In the cell below, copy-paste the model function from the previous etivity and modify it according to the new differential equations above. Make sure you understand what every line of the code means, and run it once you're ready
+```{r}
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+
+cohort_model <- function(time, state, parameters) {  
+
+    with(as.list(c(state, parameters)), {  
+                                           
+        
+    # The differential equations
+      dI <- -gamma * I - mu * I  
+      dR <- gamma * I          
+      dM <- mu * I              
+                                 
+   
+    return(list(c(dI, dR, dM))) 
+    })}
+```
+
+Question: after 4 weeks, do you expect more people to have recovered or more people to have died, and why? Proceed with the next steps to check if you are right.
+
+```{r}
+initial_state_values <- c(I = 1000000, R =0, M=0 )
+parameters <- c(gamma = 0.1, mu =0.2)
+times <- seq(from= 0, to= 4*7, by =1)
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = cohort_model,
+                            parms = parameters))
+```
+
+```{r}
+output_long <- melt(as.data.frame(output), id = "time")
+ggplot(output_long, aes(time, value, color = variable, group = variable))+
+geom_line()+
+xlab("Time (days)")+
+ylab("Number of people")+
+labs(color = "Compartment")
+```
+
+Question: based on the model output, what proportion of the initially infected cohort died before recovering over the 4 week period?
+
+```{r}
+output
+output[output$time == 28, ]
+output[29, "M"]/1000000
+```
+Question: now use the competing hazards formula given in the video lecture to calculate the case fatality rate. Does this agree with your answer to the previous question?
+```{r}
+parameters["mu"]/(parameters["mu"]+parameters["gamma"])
+```
+Question: Which value of  𝜇  do you need to get a case fatality rate of 50% assuming  𝛾  stays fixed?
+```{r}
+parameters <- c(gamma = 0.1, mu = 0.1)
+
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = cohort_model,
+                            parms = parameters))
+
+output[29,"M"]/1000000
+
+```
+
+## MODEL INPUTS:
+```{r}
+initial_state_values <- c(S = 999999, I = 1, R = 0)
+
+parameters <- c(lambda = 0.2, gamma = 0.1)
+```
+
+## TIMESTEPS:
+```{r}
+times <- seq(from = 0, to = 60, by = 1)
+```
+
+## SIR MODEL FUNCTION 
+```{r}
+sir_model <- function(time, state, parameters){
+                        with(as.list(c(state, parameters)),{
+                        
+                        dS <- -lambda*S
+                        dI <-  lambda*S-gamma*I
+                        dR <- gamma*I
+                        
+                        return(list(c(dS, dI, dR)))
+                        })
+}
+
+```
+
+# MODEL OUTPUT (solving the differential equations):
+```{r}
+output <- as.data.frame(ode(y= initial_state_values, times= times, func=sir_model, parms = parameters))
+
+output
+```
+
+## Plot:
+```{r}
+output_long <- melt(as.data.frame(output), id = "time")                  
+
+ggplot(data = output_long,                                               
+       aes(x = time, y = value, color = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Time (days)")+                                                   
+  ylab("Number of people") +                                          
+  labs(color = "Compartment") 
+```
