@@ -1,0 +1,305 @@
+---
+title: "SIR Model with a Dynamic Force of Infection"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Load Packages
+
+```{r}
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+```
+
+## Model Inputs 
+
+```{r}
+initial_state_values <- c(S = 999999, I = 1, R= 0)
+parameters <- c(beta= 1, gamma = 0.1)
+```
+
+## Time Steps
+
+```{r}
+times <- seq(from = 0, to = 60, by = 1)
+```
+
+## SIR Model Function
+
+```{r}
+sir_model <- function(time, state, parameters){
+      with(as.list(c(state, parameters)), {
+        N<- S+I+R
+        lambda <- beta*I/N
+        dS <- -lambda * S
+        dI <- lambda * S -gamma * I
+        dR <- gamma * I
+      return(list(c(dS, dI, dR)))   
+      })
+}
+```
+
+## Output
+
+```{r}
+output <- as.data.frame(ode( y= initial_state_values, times = times, func = sir_model,
+                             parms = parameters))
+```
+
+## Plot
+
+```{r}
+output_long <- melt(as.data.frame(output), id = "time")
+ggplot(output_long, aes(x= time, y= value, color = variable, group = variable))+
+  geom_line()+
+  xlab("Time (days)")+
+  ylab("Number of people")+
+  labs(color = "Compartment")
+```
+
+What is the peak prevalence?
+
+```{r}
+output[output$time == 19,]
+```
+
+## SIR Dynamics with Varying Parameters
+
+## Model Inputs
+```{r}
+initial_state_values <- c(S = 1000000-1,  
+                          I = 1,          
+                          R = 0)         
+
+
+parameters <- c(beta = 0.5,     
+                gamma = 0.25) 
+```
+
+## TIMESTEPS:
+```{r}
+times <- seq(from = 0, to = 100, by = 1)  
+```
+
+## SIR MODEL FUNCTION:
+
+```{r}
+sir_model <- function(time, state, parameters) {  
+
+    with(as.list(c(state, parameters)), {   # tell R to unpack variable names from the state and parameters inputs    
+        
+    # Total population size N 
+      N <- S+I+R
+      
+    
+      lambda <- beta * I/N
+        
+    ## Differential equations
+      dS <- -lambda * S              
+      dI <- lambda * S - gamma * I    
+                                      
+      dR <- gamma * I                 
+    return(list(c(dS, dI, dR))) 
+    })
+  
+}
+
+```
+
+## MODEL OUTPUT:
+```{r}
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = sir_model,
+                            parms = parameters))
+```
+
+## PLOT THE OUTPUT
+```{r}
+output_long <- melt(as.data.frame(output), id = "time")                  
+
+output_long$proportion <- output_long$value/sum(initial_state_values)
+
+```
+
+## Plot the Final Output
+```{r}
+ggplot(data = output_long,                                               
+       aes(x = time, y = proportion, color = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Time (days)")+                                                  
+  ylab("Proportion of the population") +                                
+  labs(color = "Compartment") 
+```
+## The Parameters
+```{r}
+parameters <- c(beta = 0.1,     
+                gamma = 0.25) 
+```
+
+## The Differential Equations
+
+```{r}
+output <- as.data.frame(ode(y = initial_state_values, times = times, 
+                            func = sir_model, parms = parameters))
+```
+
+## Ploting the Output
+```{r}
+output_long <- melt(as.data.frame(output), id = "time")                  
+
+
+output_long$proportion <- output_long$value/sum(initial_state_values)
+
+ggplot(data = output_long,                                               
+       aes(x = time, y = proportion, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Time (days)")+                                                  
+  ylab("Proportion of the population") +                                
+  labs(colour = "Compartment")  
+```
+## Simulating the Effective Reproduction Number Reff
+
+```{r}
+# LOAD THE PACKAGES:
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+
+# MODEL INPUTS:
+
+initial_state_values <- c(S = 1000000-1,   
+                          I = 1,          
+                          R = 0)           
+
+
+parameters <- c(beta = 0.4,      
+                gamma = 0.1)     
+
+# TIMESTEPS:
+
+times <- seq(from = 0, to = 100, by = 1)   
+
+# SIR MODEL FUNCTION: 
+
+# The model function 
+sir_model <- function(time, state, parameters) {  
+
+    with(as.list(c(state, parameters)), {  
+        
+    # Total population size N 
+      N <- S+I+R
+      
+    # Defining lambda as a function of beta and I:
+      lambda <- beta * I/N
+        
+    # The differential equations
+      dS <- -lambda * S               
+      dI <- lambda * S - gamma * I     
+                                      
+      dR <- gamma * I                 
+      
+    
+    return(list(c(dS, dI, dR))) 
+    })
+  
+}
+
+# Model Output:
+
+output <- as.data.frame(ode(y = initial_state_values, times = times, func = sir_model, parms = parameters))
+```
+
+```{r}
+# LOAD THE PACKAGES:
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+
+```
+
+# MODEL INPUTS:
+```{r}
+initial_state_values <- c(S = 1000000-1,   
+                          I = 1,          
+                          R = 0)           
+
+
+parameters <- c(beta = 0.4,      
+                gamma = 0.1)     
+```
+# TIMESTEPS:
+```{r}
+times <- seq(from = 0, to = 100, by = 1)   
+```
+# SIR MODEL FUNCTION: 
+```{r}
+# The model function 
+sir_model <- function(time, state, parameters) {  
+
+    with(as.list(c(state, parameters)), {  
+        
+    # Total population size N 
+      N <- S+I+R
+      
+    # Defining lambda as a function of beta and I:
+      lambda <- beta * I/N
+        
+    # The differential equations
+      dS <- -lambda * S               
+      dI <- lambda * S - gamma * I     
+                                      
+      dR <- gamma * I                 
+      
+    
+    return(list(c(dS, dI, dR))) 
+    })
+  
+}
+```
+# Model Output:
+```{r}
+output <- as.data.frame(ode(y = initial_state_values, times = times, func = sir_model, parms = parameters))
+```
+
+```{r}
+output_long <- melt(as.data.frame(output), id = "time")                  
+
+# Proportion in each compartment as a column in the long-format output
+output_long$proportion <- output_long$value/sum(initial_state_values)
+
+```
+
+# Plot 
+```{r}
+ggplot(data = output_long,                                               
+       aes(x = time, y = proportion, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Time (days)")+                                                   
+  ylab("Proportion of the population") +                                 
+  labs(colour = "Compartment",                                            
+       title = "Proportion susceptible, infected and recovered over time") +                                                               
+  theme(legend.position = "bottom")                                      
+```
+# Calculating the effective reproduction number in a new column
+```{r}
+output$reff <- parameters["beta"]/parameters["gamma"] *                 
+                output$S/(output$S+output$I+output$R)                    
+```
+# Plot Reff
+```{r}
+ggplot(data = output,                                                    
+       aes(x = time, y = reff)) +                                        
+  geom_line() +                                                          
+  xlab("Time (days)")+                                                   
+  ylab("Reff") +                                                         
+  labs(title = "Effective reproduction number over time")                
+```
+
